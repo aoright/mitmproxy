@@ -540,6 +540,45 @@ class TestApp(tornado.testing.AsyncHTTPTestCase):
         ws_client.close()
 
     @tornado.testing.gen_test
+    def test_websocket_invalid_filter_no_disconnect(self):
+        ws_req = httpclient.HTTPRequest(
+            f"ws://localhost:{self.get_http_port()}/updates",
+            headers={"Cookie": self.auth_cookie},
+        )
+        ws_client = yield tornado.websocket.websocket_connect(ws_req)
+
+        # test invalid filter message
+        message = json.dumps(
+            {
+                "type": "flows/updateFilter",
+                "payload": {
+                    "name": "search",
+                    "expr": "~u Content-Type'",
+                },
+            }
+        ).encode()
+        yield ws_client.write_message(message)
+
+        # We can send a valid message right after to prove connection isn't closed
+        message2 = json.dumps(
+            {
+                "type": "flows/updateFilter",
+                "payload": {
+                    "name": "search",
+                    "expr": "~u Content-Type",
+                },
+            }
+        ).encode()
+        yield ws_client.write_message(message2)
+        
+        response = yield ws_client.read_message()
+        assert response is not None
+        response_data = json.loads(response)
+        assert response_data["type"] == "flows/filterUpdate"
+        
+        ws_client.close()
+
+    @tornado.testing.gen_test
     def test_websocket_filter_command_error(self):
         # can't do pytest.parametrize, so we do this.
         for data in [
