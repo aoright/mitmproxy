@@ -570,12 +570,12 @@ class TestApp(tornado.testing.AsyncHTTPTestCase):
             }
         ).encode()
         yield ws_client.write_message(message2)
-        
+
         response = yield ws_client.read_message()
         assert response is not None
         response_data = json.loads(response)
         assert response_data["type"] == "flows/filterUpdate"
-        
+
         ws_client.close()
 
     @tornado.testing.gen_test
